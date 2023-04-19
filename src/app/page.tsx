@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import type { RootState } from '@/store/store';
 import { useSelector, useDispatch } from 'react-redux';
 import {
@@ -12,28 +13,48 @@ import { useGetPostsByIdQuery } from '@/features/posts/postsSlice';
 
 const Counter = () => {
   const count = useSelector((state: RootState) => state.counter.value);
-  console.log('🚀 ~ file: page.tsx:14 ~ Counter ~ count:', count);
   const [incrementAmount, setIncrementAmount] = useState('2');
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<never[]>([]);
+  console.log('🚀 ~ file: page.tsx:18 ~ Counter ~ posts:', posts);
+  const [postId, setPostId] = useState('');
   const dispatch = useDispatch();
-  console.log('🚀 ~ file: page.tsx:17 ~ Counter ~ posts:', posts);
-
   const handleIncrementByAmount = () => {
     dispatch(incrementByAmount(Number(incrementAmount)));
   };
 
-  const { data, error, isLoading } = useGetPostsByIdQuery('2')
-  console.log("🚀 ~ file: page.tsx:26 ~ Counter ~ data:", data)
-
+  const { data, error, isLoading } = useGetPostsByIdQuery(postId);
+  console.log('🚀 ~ file: page.tsx:24 ~ Counter ~ data:', data);
+  // const handleFetchPostById = (id: any) => {
+  //   console.log(data);
+  // };
 
   useEffect(() => {
-    fetch('https://jsonplaceholder.typicode.com/posts')
-      .then((response) => response.json())
-      .then((json) => setPosts(json));
-  }, []);
+    if (postId !== undefined || postId !== null) {
+      //@ts-ignore
+      setPosts(data);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    //@ts-ignore
+    setPosts(data);
+  }, [data]);
+
+  if (error)
+    return (
+      <>
+        <p className='text-red-500 mb-4'>
+          Failed to fetch data. Post ${postId} not found.
+        </p>
+
+        <button onClick={() => location.reload()}>Back</button>
+      </>
+    );
+
+  if (isLoading) return <p>Loading...</p>;
 
   return (
-    <div>
+    <>
       <div>
         <button
           aria-label='Increment value'
@@ -64,9 +85,24 @@ const Counter = () => {
           >
             Increment By Amount
           </button>
+
+          <div className='my-4'>
+            <input
+              type='text'
+              value={postId}
+              onChange={(e) => setPostId(e.target.value)}
+              className='border border-solid border-black mr-4 text-center'
+              placeholder='enter an id here to search for a post/s'
+            />
+          </div>
         </div>
+        {posts !== undefined ? (
+          <p>{JSON.stringify(posts)}</p>
+        ) : (
+          <p>No post/s</p>
+        )}
       </div>
-    </div>
+    </>
   );
 };
 
