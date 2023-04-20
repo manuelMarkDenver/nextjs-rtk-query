@@ -2,14 +2,15 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { RootState } from '@/store/store';
+import { RootState, useAppDispatch } from '@/store/store';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   decrement,
   increment,
   incrementByAmount,
 } from '@/features/counters/counterSlice';
-import { useGetPostsByIdQuery } from '@/features/posts/postsSlice';
+import { getPostsById } from '@/features/posts/postsSliceThunk';
+// import { useGetPostsByIdQuery } from '@/features/posts/postsSlice';
 
 const Counter = () => {
   const count = useSelector((state: RootState) => state.counter.value);
@@ -17,16 +18,31 @@ const Counter = () => {
   const [posts, setPosts] = useState<never[]>([]);
   console.log('🚀 ~ file: page.tsx:18 ~ Counter ~ posts:', posts);
   const [postId, setPostId] = useState('');
-  const dispatch = useDispatch();
+  console.log('🚀 ~ file: page.tsx:21 ~ Counter ~ postId:', postId);
+
+  // sync rtk
+  const dispatch = useAppDispatch();
   const handleIncrementByAmount = () => {
     dispatch(incrementByAmount(Number(incrementAmount)));
   };
 
-  const { data, error, isLoading } = useGetPostsByIdQuery(postId);
-  console.log('🚀 ~ file: page.tsx:24 ~ Counter ~ data:', data);
-  // const handleFetchPostById = (id: any) => {
-  //   console.log(data);
-  // };
+  // async rtk
+  const {
+    posts: data,
+    loading,
+    error,
+  } = useSelector((state: RootState) => state.posts);
+
+  useEffect(() => {
+    if (data) {
+      //@ts-ignore
+      setPosts(data);
+    }
+  }, [data]);
+
+  // rtk Query
+  // const { data, error, isLoading } = useGetPostsByIdQuery(postId);
+  // console.log('🚀 ~ file: page.tsx:24 ~ Counter ~ data:', data);
 
   useEffect(() => {
     if (postId !== undefined || postId !== null) {
@@ -40,18 +56,23 @@ const Counter = () => {
     setPosts(data);
   }, [data]);
 
-  if (error)
-    return (
-      <>
-        <p className='text-red-500 mb-4'>
-          Failed to fetch data. Post ${postId} not found.
-        </p>
+  const handleGetComments = async (postId: any) => {
+    console.log("🚀 ~ file: page.tsx:60 ~ handleGetComments ~ postId:", postId)
+    await dispatch(getPostsById(postId));
+  };
 
-        <button onClick={() => location.reload()}>Back</button>
-      </>
-    );
+  // if (error)
+  //   return (
+  //     <>
+  //       <p className='text-red-500 mb-4'>
+  //         Failed to fetch data. Post {postId} not found.
+  //       </p>
 
-  if (isLoading) return <p>Loading...</p>;
+  //       <button onClick={() => location.reload()}>Back</button>
+  //     </>
+  //   );
+
+  if (loading) return <p>Loading...</p>;
 
   return (
     <>
@@ -95,6 +116,7 @@ const Counter = () => {
               placeholder='enter an id here to search for a post/s'
             />
           </div>
+          <button onClick={() => handleGetComments(postId)}>Get Posts</button>
         </div>
         {posts !== undefined ? (
           <p>{JSON.stringify(posts)}</p>
